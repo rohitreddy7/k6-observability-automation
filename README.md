@@ -16,3 +16,4 @@ Python, Git, and GitHub Actions.
 ```powershell
 k6 run --out json=raw_metrics.json test.js
 python log_parser.py
+Pipeline trigger test.
