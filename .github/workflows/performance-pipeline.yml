@@ -1,0 +1,74 @@
+
+name: K6 Performance Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  performance-test:
+    name: API Performance Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.7.1'
+
+      - name: Verify tools
+        run: |
+          node --version
+          python --version
+          k6 version
+
+      - name: Run k6 performance test
+        id: k6test
+        continue-on-error: true
+        run: |
+          k6 run --out json=raw_metrics.json test.js
+
+      - name: Analyze performance results
+        if: always()
+        run: |
+          python log_parser.py
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-performance-results
+          path: |
+            k6_results.json
+            raw_metrics.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce SLA thresholds
+        if: always()
+        env:
+          K6_OUTCOME: ${{ steps.k6test.outcome }}
+        run: |
+          if [ "$K6_OUTCOME" != "success" ]; then
+            echo "FAILED: k6 test execution or SLA threshold failed."
+            exit 1
+          fi
+          echo "PASSED: k6 test execution and SLA thresholds."
