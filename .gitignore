@@ -1,0 +1,14 @@
+
+# Generated performance test results
+k6_results.json
+raw_metrics.json
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# IDE files
+.vscode/
+.idea/
